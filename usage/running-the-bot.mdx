@@ -1,0 +1,77 @@
+---
+title: "Running Discord Ticket Bot on Your Server"
+sidebarTitle: "Running the Bot"
+description: "Learn how to start the Discord Ticket Bot process, verify it is online, and post the ticket panel in your server."
+---
+
+Once you have filled in all four configuration values in `main/main.py` — the category ID, logs channel ID, staff role ID, and embed color — you are ready to launch the bot and begin accepting support tickets from your community.
+
+## Starting the Bot
+
+Run the following command from the **root of the repository**. Python 3.8 or higher is required.
+
+```bash
+python main/main.py
+```
+
+<Note>
+  The bot is initialised with `help_command=None`, so the built-in `tb!help` command is intentionally disabled. There is no help listing available to users by default.
+</Note>
+
+<Tip>
+  For production deployments, keep the bot process alive by using a process manager such as [pm2](https://pm2.keymetrics.io/) or a terminal multiplexer like `screen` or `tmux`. This prevents the bot from going offline if your SSH session disconnects.
+
+  ```bash
+  # Example with pm2
+  pm2 start main/main.py --interpreter python3 --name discord-ticket-bot
+  pm2 save
+  ```
+</Tip>
+
+## Verifying Startup
+
+When the bot connects successfully to Discord, two things happen immediately inside the `on_ready` event:
+
+1. **Console output** — the terminal prints `Ready to support ✅`.
+2. **Discord status** — the bot sets its presence to **Watching N members**, where *N* is the total member count across every guild the bot has joined (minus the bot account itself).
+
+```python
+@bot.event
+async def on_ready():
+    members = 0
+    for guild in bot.guilds:
+        members += guild.member_count - 1
+    await bot.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f'{members} members'
+    ))
+    print('Ready to support ✅')
+```
+
+If you do not see `Ready to support ✅` in the console, double-check that your bot token is correctly placed in the `bot.run('')` call at the bottom of `main.py`.
+
+## Posting the Ticket Panel
+
+With the bot running, navigate to any text channel in your Discord server where you want the ticket panel to live and run:
+
+```
+tb!ticket
+```
+
+This command requires the **Administrator** permission. The bot will:
+
+1. Silently delete your `tb!ticket` invocation message so the channel stays clean.
+2. Post a rich embed containing a green **🔧 Create a ticket** button.
+
+## Checking the Ticket Panel
+
+After running `tb!ticket`, the posted embed will look like this:
+
+| Property | Value |
+|---|---|
+| **Title** | Tickets |
+| **Description** | Welcome to tickets system. |
+| **Banner image** | A decorative image hosted at `https://i.imgur.com/FoI5ITb.png` |
+| **Button** | 🔧 Create a ticket (green) |
+
+The embed color matches the `embed_color` value you configured (default `0xfcd005`, a golden yellow). This panel is the single entry point for all ticket interactions — members click the button to begin the ticket flow.

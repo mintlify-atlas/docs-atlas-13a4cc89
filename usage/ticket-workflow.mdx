@@ -1,0 +1,144 @@
+---
+title: "End-to-End Ticket Workflow for Server Members"
+sidebarTitle: "Ticket Workflow"
+description: "Trace the full lifecycle of a support ticket from panel creation through category selection, private channel setup, and final closure with logging."
+---
+
+Every support ticket passes through a predictable sequence of steps driven by Discord button and select-menu interactions. Understanding the full lifecycle helps both administrators configuring the bot and staff members who manage incoming tickets day-to-day.
+
+<Steps>
+  <Step title="Open the ticket panel">
+    An administrator runs `tb!ticket` in the desired support channel. The bot deletes the command message and posts an embed titled **Tickets** with the description *"Welcome to tickets system."*, a banner image, and a single green **🔧 Create a ticket** button. This panel is the only entry point for the ticket system.
+
+    ```
+    tb!ticket
+    ```
+  </Step>
+
+  <Step title="Create a ticket">
+    A server member clicks the green **🔧 Create a ticket** button on the panel embed. The `Ticket` button interaction fires and the bot responds with a select menu directly below the button. No channel is created at this point — the member must first choose a category.
+  </Step>
+
+  <Step title="Choose a category">
+    The select menu displays the placeholder *"How can we help you?"* and offers three options:
+
+    | Option | Emoji | Description |
+    |---|---|---|
+    | **Question** | ❔ | If you have a simple question. |
+    | **Help** | 🔧 | If you need help from us. |
+    | **Report** | 🚫 | To report a misbehaving user. |
+
+    The member picks the option that best matches their request. This selection drives both the channel name and the welcome message inside the ticket.
+  </Step>
+
+  <Step title="Private channel created">
+    The `on_select_option` event fires for the `menu` select. The bot creates a new text channel under the configured ticket category and applies three permission overrides (see [Channel permissions](#channel-permissions) below). The channel name follows the pattern for the chosen category.
+
+    The bot also sends a short confirmation message to the member that auto-deletes after 3 seconds, for example:
+
+    > The #❔┃username-ticket channel was created to solve your questions.
+  </Step>
+
+  <Step title="Inside the ticket">
+    The bot posts a welcome embed inside the newly created channel, mentioning the ticket creator. The embed title and description vary by category:
+
+    | Category | Embed title |
+    |---|---|
+    | Question | `Question - ¡Hi {username}!` |
+    | Help | `Help - ¡Hi {username}!` |
+    | Report | `Report - ¡Hi {username}!` |
+
+    The embed includes a thumbnail of the member's avatar and a description prompting them to describe their issue and use the **🔔 Call staff** button if no one responds. Two action buttons are always present:
+
+    - 🔐 **Close ticket** (red)
+    - 🔔 **Call staff** (blue)
+  </Step>
+
+  <Step title="Call staff (optional)">
+    If the member needs to get a staff member's attention, they press the **🔔 Call staff** button. The bot sends a message in the ticket channel that:
+
+    - Mentions the configured staff role (`<@&id_staff_role>`)
+    - Displays an embed reading `🔔 {member mention} has called the staff.`
+    - **Auto-deletes after 20 seconds** to keep the channel tidy
+
+    Staff members with the configured role will receive a Discord notification and can navigate to the channel.
+  </Step>
+
+  <Step title="Close the ticket">
+    When the issue is resolved, either the ticket creator or a staff member presses **🔐 Close ticket**. Rather than deleting immediately, the bot sends a confirmation embed in the channel:
+
+    > ⚠️ Are you sure you want to close the ticket?
+
+    Two buttons accompany the prompt — **Yes** (green) and **No** (red) — preventing accidental closures.
+  </Step>
+
+  <Step title="Confirm closure">
+    **If the user presses Yes:** the ticket channel is permanently deleted. Immediately after deletion, the bot posts a structured log embed to the configured logs channel recording who closed the ticket and when (see [Ticket log format](#ticket-log-format) below).
+
+    **If the user presses No:** the confirmation message is silently deleted and the ticket channel remains open, as if Close ticket was never pressed.
+  </Step>
+</Steps>
+
+---
+
+## Channel Naming Conventions
+
+Each ticket channel name includes an emoji prefix that visually signals the ticket category in the channel list, followed by the Discord username of the member who opened it.
+
+| Category | Channel name pattern | Example |
+|---|---|---|
+| Question | `❔┃{username}-ticket` | `❔┃alex-ticket` |
+| Help | `🔧┃{username}-ticket` | `🔧┃alex-ticket` |
+| Report | `🚫┃{username}-ticket` | `🚫┃alex-ticket` |
+
+<Note>
+  Channel names use the member's Discord **username** (not display name or nickname), which is what `interaction.author.name` returns. If two members with identical usernames open tickets of the same type at the same time, Discord will append a suffix automatically to prevent name collisions.
+</Note>
+
+---
+
+## Channel Permissions
+
+Every ticket channel, regardless of category, receives the same three permission overrides applied in this order:
+
+| Target | Permissions granted | Permissions denied |
+|---|---|---|
+| **@everyone** (guild default role) | — | `read_messages`, `send_messages` |
+| **Ticket creator** | `read_messages`, `send_messages`, `add_reactions`, `embed_links`, `attach_files`, `read_message_history`, `external_emojis` | — |
+| **Staff role** | `read_messages`, `send_messages`, `add_reactions`, `embed_links`, `attach_files`, `read_message_history`, `external_emojis`, **`manage_messages`** | — |
+
+The key difference between the ticket creator and the staff role is `manage_messages=True`, which allows staff to delete or pin messages inside the ticket channel.
+
+<Warning>
+  The @everyone override targets the guild's default role by fetching `interaction.guild.get_role(interaction.guild.id)`. Ensure no other roles in your server have blanket `read_messages` permission on the ticket category, or those roles will still be able to see ticket channels.
+</Warning>
+
+---
+
+## Ticket Log Format
+
+When a ticket is closed and confirmed, the bot sends an embed to the channel configured as `id_channel_ticket_logs`. The embed contains the following fields:
+
+| Property | Value |
+|---|---|
+| **Title** | Tickets |
+| **Field — Ticket** | The name of the deleted channel (e.g. `❔┃alex-ticket`) |
+| **Field — Closed by** | A mention of the user who pressed **Yes** (e.g. `@Alex`) |
+| **Timestamp** | UTC time of closure (`datetime.datetime.utcnow()`) |
+| **Thumbnail** | Avatar of the user who closed the ticket |
+| **Color** | Matches the global `embed_color` configuration value |
+
+```python
+embed_logs = discord.Embed(
+    title="Tickets",
+    description="",
+    timestamp=datetime.datetime.utcnow(),
+    color=embed_color
+)
+embed_logs.add_field(name="Ticket", value=f"{canal.name}", inline=True)
+embed_logs.add_field(name="Closed by", value=f"{interaction.author.mention}", inline=False)
+embed_logs.set_thumbnail(url=interaction.author.avatar_url)
+await canal_logs.send(embed=embed_logs)
+```
+
+This log provides a permanent audit trail of every ticket that has been resolved, including the exact UTC timestamp and the identity of whoever performed the closure.

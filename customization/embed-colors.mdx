@@ -1,0 +1,72 @@
+---
+title: "Customizing Embed Colors in Discord Ticket Bot"
+sidebarTitle: "Embed Colors"
+description: "Learn how to use the embed_color variable in main.py to pick and apply a single hex color across every embed the Discord Ticket Bot sends."
+---
+
+Every embed the bot sends — from the ticket panel to the close-confirmation prompt — shares a single accent color controlled by one variable in `main/main.py`. Changing `embed_color` once is all it takes to re-theme the entire bot without hunting through each embed definition individually.
+
+The default value shipped with the bot is a warm yellow-gold:
+
+```python
+embed_color = 0xfcd005  # Yellow/Gold (default)
+```
+
+This value is passed as the `color` argument every time a `discord.Embed` is constructed, which is why a single change propagates everywhere instantly.
+
+## How to Change the Color
+
+<Steps>
+  <Step title="Pick a hex color">
+    Use any color picker tool to find the hex code you want. [htmlcolorcodes.com](https://htmlcolorcodes.com) is a convenient online option. The picker will give you a value like `#5865F2`.
+  </Step>
+  <Step title="Convert to Python format">
+    Discord (and Python) expects the color as an integer literal, not a CSS string. Drop the `#` and add a `0x` prefix:
+
+    ```
+    #5865F2  →  0x5865F2
+    ```
+  </Step>
+  <Step title="Update main.py">
+    Open `main/main.py` and replace the `embed_color` value near the top of the file:
+
+    ```python
+    embed_color = 0x5865F2  # Discord Blurple
+    ```
+  </Step>
+  <Step title="Restart the bot">
+    Save the file and restart the bot process. All new embeds will use the updated color. Embeds already posted in Discord channels will not be retroactively updated.
+  </Step>
+</Steps>
+
+## Example Color Values
+
+Below are several ready-to-use values, including Discord's own brand palette:
+
+```python
+embed_color = 0xfcd005  # Yellow/Gold (default)
+embed_color = 0x5865F2  # Discord Blurple
+embed_color = 0x57F287  # Discord Green
+embed_color = 0xED4245  # Discord Red
+embed_color = 0xFEE75C  # Discord Yellow
+embed_color = 0xEB459E  # Discord Fuchsia
+```
+
+Pick whichever best matches your server's branding or theme.
+
+## Where embed_color Is Used
+
+The variable is referenced by every `discord.Embed` the bot constructs. Here is the full list of embeds that use it:
+
+- **Ticket panel embed** — The embed posted by the `tb!ticket` command, which contains the Create Ticket button.
+- **Select menu response** — The ephemeral dropdown prompt shown when a user clicks the Create Ticket button.
+- **Inside-ticket welcome embed (Question)** — The greeting embed posted when a Question ticket channel is created.
+- **Inside-ticket welcome embed (Help)** — The greeting embed posted when a Help ticket channel is created.
+- **Inside-ticket welcome embed (Report)** — The greeting embed posted when a Report ticket channel is created.
+- **Call staff embed** — The temporary notification embed that pings the staff role when a user presses "Call staff".
+- **Close ticket confirmation embed** — The "Are you sure?" prompt with the Yes/No buttons shown when a user presses "Close ticket".
+- **Ticket log embed** — The summary embed sent to the logs channel after a ticket channel is deleted.
+
+<Tip>
+  Because all embeds share the single `embed_color` variable, there is no way to give individual embed types different colors using the current code structure. If you need per-type colors (e.g. red for Report tickets and green for Question tickets), introduce separate variables — `embed_color_question`, `embed_color_report`, etc. — and pass the appropriate one to each `discord.Embed(color=...)` call.
+</Tip>

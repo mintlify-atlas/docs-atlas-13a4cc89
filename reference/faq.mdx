@@ -1,0 +1,129 @@
+---
+title: "Frequently Asked Questions: Discord Ticket Bot"
+sidebarTitle: "FAQ"
+description: "Answers to the most common setup problems, permission errors, library issues, and customization questions for the Discord Ticket Bot."
+---
+
+Setting up the Discord Ticket Bot is straightforward once the three configuration IDs are in place, but a handful of issues come up repeatedly. The questions below cover the most common problems encountered during setup, as well as customization options and hosting tips. If you are hitting an error not covered here, double-check that all three IDs (`id_category`, `id_channel_ticket_logs`, `id_staff_role`) are set correctly and that `discord_components` is installed from the GitHub source.
+
+---
+
+<Accordion title="The bot is online but tb!ticket does nothing">
+  The `tb!ticket` command is guarded by `@commands.has_permissions(administrator=True)`. If the user invoking the command does not have the **Administrator** permission in that server, Discord silently drops the command — no error is shown.
+
+  **Fix:** Ensure the user running `tb!ticket` holds the Administrator permission in the server where they are invoking it. You can verify this in **Server Settings → Members → (user) → Roles**, then checking the role's permissions.
+</Accordion>
+
+<Accordion title="The select menu doesn't create a channel">
+  When a user picks a category from the select menu, `on_select_option` calls `guild.create_text_channel(...)` under the category resolved from `id_category`. This fails silently if either condition is not met:
+
+  1. `id_category` is not set to a valid Discord category ID, or the category has been deleted.
+  2. The bot's role does not have **Manage Channels** permission.
+
+  **Fix:** Confirm `id_category` is the integer ID of an existing category (right-click the category → Copy ID with Developer Mode enabled). Also verify the bot has **Manage Channels** in Server Settings → Roles.
+</Accordion>
+
+<Accordion title="The staff role isn't pinged by Call Staff">
+  When the **🔔 Call staff** button is pressed, the bot sends `<@&{id_staff_role}>` as a text message in the ticket channel. Pinging fails if:
+
+  1. `id_staff_role` is not set to the correct role ID.
+  2. The bot lacks permission to mention roles in the ticket channel.
+
+  **Fix:** Verify `id_staff_role` is set to the correct role's integer ID (right-click the role name in the members list → Copy ID). Also confirm the bot's role has **Mention @everyone, @here, and All Roles** enabled at the server level.
+</Accordion>
+
+<Accordion title="Ticket logs aren't appearing">
+  After a ticket channel is deleted via the **Yes** button, `on_button_click` fetches `canal_logs` with `interaction.guild.get_channel(id_channel_ticket_logs)` and sends the log embed there. If `id_channel_ticket_logs` is wrong, `canal_logs` will be `None` and the `await canal_logs.send(...)` call will raise an `AttributeError`.
+
+  **Fix:** Make sure `id_channel_ticket_logs` is set to the integer ID of an existing text channel the bot can send messages in. The bot needs **Send Messages** and **Embed Links** in that channel.
+</Accordion>
+
+<Accordion title="I get an error about discord_components">
+  The `discord_components` package on PyPI may be outdated and incompatible with the current version of `discord.py`. The correct installation is from the GitHub source.
+
+  **Fix:** Install directly from GitHub:
+
+  ```bash
+  pip install git+https://github.com/kiki7000/discord.py-components
+  ```
+
+  If you already have a PyPI version installed, uninstall it first:
+
+  ```bash
+  pip uninstall discord-components
+  pip install git+https://github.com/kiki7000/discord.py-components
+  ```
+</Accordion>
+
+<Accordion title="Can I add more ticket categories?">
+  Yes. The category list is defined in two places in `main.py` and both must be updated together:
+
+  1. **In `on_button_click`** — add a new `SelectOption` to the `Select` component inside the `"Ticket"` branch.
+  2. **In `on_select_option`** — add a matching `elif interaction.values[0] == 'your_value':` branch that creates the channel, sets permissions, and sends the welcome embed.
+
+  Follow the existing `question`, `help`, and `report` blocks as a template. See [Customizing the Bot](/customization/customizing-the-bot) for a full walkthrough.
+</Accordion>
+
+<Accordion title="How do I change the bot's prefix?">
+  The prefix is set in the `ComponentsBot` constructor at the top of `main.py`:
+
+  ```python
+  bot = ComponentsBot('tb!', help_command=None)
+  ```
+
+  Replace `'tb!'` with any string you prefer, then restart the bot. For example, to use `!`:
+
+  ```python
+  bot = ComponentsBot('!', help_command=None)
+  ```
+</Accordion>
+
+<Accordion title="Can multiple tickets be open at the same time?">
+  Yes. Each ticket creates its own dedicated text channel, and the channels are independent of one another. There is no concurrency limit or single-ticket-per-user enforcement in the current code. If you need to restrict users to one open ticket at a time, you would need to add a check in `on_select_option` that scans the category for a channel whose name contains the user's username before creating a new one.
+</Accordion>
+
+<Accordion title="The bot shows 'Ready to support ✅' but doesn't respond to buttons">
+  The `on_button_click` event is dispatched by the `discord_components` library, not by `discord.py` itself. If the library is not installed correctly — for instance, if a stale PyPI build is present — the event will never fire even though the bot connects and shows its ready message.
+
+  **Fix:** Reinstall `discord_components` from the GitHub source:
+
+  ```bash
+  pip install git+https://github.com/kiki7000/discord.py-components
+  ```
+
+  After reinstalling, restart the bot and test the **🔧 Create a ticket** button again. Also ensure you are using `ComponentsBot` (not the plain `commands.Bot`) as the bot class — `on_button_click` and `on_select_option` are only available on `ComponentsBot`.
+</Accordion>
+
+<Accordion title="How do I keep the bot running 24/7?">
+  The bot is a standard Python process and will stop whenever the host machine shuts down or the terminal session ends. Common approaches for continuous operation:
+
+  **Using pm2 (Node.js process manager, works for Python too):**
+
+  ```bash
+  pm2 start main.py --interpreter python3 --name ticket-bot
+  pm2 save
+  pm2 startup
+  ```
+
+  **Using screen:**
+
+  ```bash
+  screen -S ticket-bot
+  python3 main.py
+  # Detach with Ctrl+A, then D
+  ```
+
+  **Using tmux:**
+
+  ```bash
+  tmux new -s ticket-bot
+  python3 main.py
+  # Detach with Ctrl+B, then D
+  ```
+
+  **Using supervisord** — create a config file that points to `main.py` and set `autostart=true` and `autorestart=true`.
+
+  <Tip>
+    A VPS (Virtual Private Server) running Linux is the most reliable 24/7 hosting option. Services like DigitalOcean, Linode, or a small AWS EC2 instance work well and give you full control over the process manager.
+  </Tip>
+</Accordion>

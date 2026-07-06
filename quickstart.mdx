@@ -1,47 +1,124 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Discord Ticket Bot in Minutes"
+sidebarTitle: "Quickstart"
+description: "Clone the repo, install discord.py and discord-components, configure four variables, add your bot token, and run your ticket bot end-to-end."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+This guide walks you through everything required to get Discord Ticket Bot running on your machine from scratch. By the end you will have cloned the repository, installed all dependencies, filled in the four required configuration values, connected your bot token, started the bot, and posted the ticket panel in your Discord server.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+<Warning>
+  Never share your bot token publicly or commit it to a public repository. Anyone who has your token can take full control of your bot. If your token is ever exposed, regenerate it immediately from the [Discord Developer Portal](https://discord.com/developers/applications).
+</Warning>
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Prerequisites">
+    Before you begin, confirm the following are available on your system:
 
-    ```bash
-    npm install your-package
-    ```
+    - **Python 3.8 or higher** — check with `python --version` or `python3 --version`
+    - **pip** — usually bundled with Python; check with `pip --version`
+    - **A Discord account** with access to a server where you have Administrator permissions
+
+    You will also need a Discord bot token. If you have not created a bot application yet, follow the [bot registration guide](/setup/bot-registration) to create an application, add a bot account, and copy your token before continuing.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+
+  <Step title="Clone the repository">
+    Clone the project from GitHub and move into the project directory:
 
     ```bash
-    your-cli init
+    git clone https://github.com/astrxnomo/discord-ticket-bot-py.git
+    cd discord-ticket-bot-py
     ```
+
+    The repository contains a single `main/` directory with `main.py` and a `req.txt` file at the root.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+
+  <Step title="Install dependencies">
+    Install both required packages with one command:
 
     ```bash
-    your-cli start
+    pip install -r req.txt
     ```
+
+    The `req.txt` file pins exactly two dependencies:
+
+    ```text
+    git+https://github.com/kiki7000/discord.py-components
+    discord.py==2.0.0
+    ```
+
+    - **discord.py 2.0.0** — the core Discord API wrapper the bot is built on.
+    - **discord-components** — installed directly from its GitHub repository; provides the `ComponentsBot`, `Button`, `Select`, and `SelectOption` classes used throughout the bot.
+
+    pip will resolve and install both packages along with any transitive dependencies automatically.
+  </Step>
+
+  <Step title="Configure the bot">
+    Open `main/main.py` in your editor. Near the top of the file, just below the bot instantiation line, you will find four configuration variables that must be filled in before the bot will work correctly:
+
+    ```python
+    id_category = #put here the id of the category where the bot will create the ticket channels
+    id_channel_ticket_logs = #put here the id of the channel where the bot will create the ticket logs
+    id_staff_role = #put here the id of the staff role
+    embed_color = 0xfcd005 #put here a hex color that will carry all the embeds sent by the bot
+    ```
+
+    Replace each comment with the appropriate integer ID or value for your server:
+
+    | Variable | What to put here |
+    |---|---|
+    | `id_category` | The integer ID of the Discord category where ticket channels will be created |
+    | `id_channel_ticket_logs` | The integer ID of the channel where closed-ticket log embeds will be posted |
+    | `id_staff_role` | The integer ID of the role that staff members hold (granted access to all ticket channels) |
+    | `embed_color` | A hex color integer (e.g. `0xfcd005`) applied to every embed the bot sends |
+
+    To copy a Discord ID, enable **Developer Mode** in Discord's settings (*App Settings → Advanced → Developer Mode*), then right-click any category, channel, or role and select **Copy ID**.
+
+    For a full breakdown of each variable and advanced customization options, see the [configuration guide](/setup/configuration).
+  </Step>
+
+  <Step title="Add your bot token">
+    At the very bottom of `main/main.py` you will find:
+
+    ```python
+    bot.run('')
+    ```
+
+    Place your bot token between the single quotes:
+
+    ```python
+    bot.run('YOUR_BOT_TOKEN_HERE')
+    ```
+
+    This is the token you copied from the Discord Developer Portal when creating your bot account. Keep this value private — see the warning at the top of this page.
+  </Step>
+
+  <Step title="Run the bot">
+    Start the bot from the project root directory:
+
+    ```bash
+    python main/main.py
+    ```
+
+    If everything is configured correctly, the terminal will print:
+
+    ```
+    Ready to support ✅
+    ```
+
+    This confirms the bot has authenticated with Discord and is listening for events.
+
+    <Tip>
+      Once online, the bot automatically sets its status to "Watching **N members**", where N is the total member count across all servers the bot has joined. This updates every time the bot starts.
+    </Tip>
+  </Step>
+
+  <Step title="Post the ticket panel">
+    In your Discord server, navigate to any channel where the bot has permission to read and send messages, then type:
+
+    ```
+    tb!ticket
+    ```
+
+    This command requires the **Administrator** permission. The bot will delete your command message and post a `Tickets` embed with a green 🔧 **Create a ticket** button. Members can now click the button to open a support ticket.
   </Step>
 </Steps>
-
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>

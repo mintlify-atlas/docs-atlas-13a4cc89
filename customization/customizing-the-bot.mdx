@@ -1,0 +1,258 @@
+---
+title: "Customize Discord Ticket Bot Behavior and Messages"
+sidebarTitle: "Customizing"
+description: "Learn how to personalize the Discord Ticket Bot's prefix, embeds, buttons, select menu options, channel names, and ticket types in main.py."
+---
+
+Every visible and behavioral aspect of the bot — from its command prefix to the welcome message inside each ticket channel — is controlled by a small set of variables and code blocks near the top of `main/main.py`. No separate config file is needed; open that file, make your changes, and restart the bot to see them take effect.
+
+<Note>
+  The `custom_id` values used for interactive components — `'Ticket'`, `'call_staff'`, `'close_ticket'`, `'close_yes'`, `'close_no'`, and `'menu'` — are internal interaction identifiers that Discord uses to route button clicks and select-menu choices to the correct handler. **Do not change these values.** All other strings (labels, descriptions, embed text, emojis) are purely cosmetic and safe to edit freely.
+</Note>
+
+## Bot Prefix
+
+The bot is initialized with the prefix `tb!`, which means every command is invoked as `tb!ticket`, `tb!help`, and so on.
+
+```python
+bot = ComponentsBot('tb!', help_command=None)
+```
+
+To use a different prefix, replace `'tb!'` with any string you like:
+
+```python
+bot = ComponentsBot('!', help_command=None)   # single character
+bot = ComponentsBot('ticket ', help_command=None)  # word with trailing space
+bot = ComponentsBot('>>', help_command=None)  # multi-character symbol
+```
+
+After saving the file, **restart the bot** for the new prefix to take effect. Users who have memorized the old prefix will need to be informed of the change.
+
+## Ticket Panel Embed
+
+When an administrator runs the ticket command, the bot posts an embed panel in the current channel. This panel is the entry point for all ticket interactions.
+
+```python
+embed = discord.Embed(
+    title='Tickets',
+    description='Welcome to tickets system.',
+    color=embed_color
+)
+embed.set_image(url='https://i.imgur.com/FoI5ITb.png')
+```
+
+You can customize three parts of this panel:
+
+- **`title`** — The bold heading displayed at the top of the embed. Change `'Tickets'` to anything you want, such as `'Support'` or `'Open a Ticket'`.
+- **`description`** — The body text shown below the title. Replace `'Welcome to tickets system.'` with a custom welcome or instruction message.
+- **`embed.set_image(url=...)`** — A large banner image shown inside the embed. Replace the Imgur URL with any publicly accessible image URL. To remove the image entirely, delete the `embed.set_image(...)` line.
+
+**Example:**
+
+```python
+embed = discord.Embed(
+    title='Support Center',
+    description='Need help? Click the button below to open a support ticket.',
+    color=embed_color
+)
+embed.set_image(url='https://example.com/your-banner.png')
+```
+
+## Create Ticket Button
+
+Below the panel embed, the bot renders a single button that users click to begin creating a ticket.
+
+```python
+Button(
+    custom_id='Ticket',
+    label="Create a ticket",
+    style=ButtonStyle.green,
+    emoji='🔧'
+)
+```
+
+You can change the following properties:
+
+- **`label`** — The text on the button face. Replace `"Create a ticket"` with any short string.
+- **`emoji`** — The emoji displayed alongside the label. Swap `'🔧'` for any standard Unicode or server emoji.
+- **`style`** — Controls the button's color. The available styles are:
+
+  | Style | Appearance |
+  |---|---|
+  | `ButtonStyle.green` | Green |
+  | `ButtonStyle.blue` | Blurple (Discord blue) |
+  | `ButtonStyle.red` | Red |
+  | `ButtonStyle.grey` | Grey |
+
+<Note>
+  Do not modify `custom_id='Ticket'`. The `on_button_click` event handler checks for this exact value to trigger the select menu response.
+</Note>
+
+## Select Menu Options
+
+Once a user clicks the Create Ticket button, the bot responds with a dropdown select menu. The three options are defined as `SelectOption` entries:
+
+```python
+Select(
+    placeholder="How can we help you?",
+    options=[
+        SelectOption(label="Question", value="question", description='If you have a simple question.', emoji='❔'),
+        SelectOption(label="Help",     value="help",     description='If you need help from us.',      emoji='🔧'),
+        SelectOption(label="Report",   value="report",   description='To report a misbehaving user.',  emoji='🚫'),
+    ],
+    custom_id="menu"
+)
+```
+
+For each `SelectOption` you can safely change:
+
+- **`label`** — The option name shown in the dropdown.
+- **`description`** — The short subtitle displayed beneath the label.
+- **`emoji`** — The emoji icon to the left of the label.
+- **`placeholder`** — The grey hint text shown before the user makes a selection.
+
+<Warning>
+  The `value` field (`'question'`, `'help'`, `'report'`) must **exactly match** the string checked in `on_select_option`. If you change a `value`, you must update the corresponding `if interaction.values[0] == '...'` branch as well, or that ticket type will silently stop working.
+
+  ```python
+  # These two must always match:
+  SelectOption(label="Question", value="question", ...)
+
+  if interaction.values[0] == 'question':  # ← same string
+      ...
+  ```
+</Warning>
+
+## Ticket Channel Names
+
+When a user selects a ticket type, the bot creates a private text channel. Each type uses a distinct emoji prefix in the channel name:
+
+```python
+# Question ticket
+channel = await guild.create_text_channel(name=f'❔┃{interaction.author.name}-ticket', category=category)
+
+# Help ticket
+channel = await guild.create_text_channel(name=f'🔧┃{interaction.author.name}-ticket', category=category)
+
+# Report ticket
+channel = await guild.create_text_channel(name=f'🚫┃{interaction.author.name}-ticket', category=category)
+```
+
+The `{interaction.author.name}` portion is always replaced at runtime with the Discord username of the person who opened the ticket, so channel names look like `❔┃john-ticket`.
+
+To change the naming format, edit the f-string:
+
+```python
+# Use a different separator or suffix
+name=f'❔│{interaction.author.name}-support'
+
+# Add a numeric or text prefix instead of an emoji
+name=f'question-{interaction.author.name}'
+```
+
+You can replace the emoji prefix for each type independently — just keep the pattern consistent within the same ticket type's block.
+
+## Inside-Ticket Embed Messages
+
+After the private channel is created, the bot posts a welcome embed inside it. Each ticket type has its own embed with a distinct title and description:
+
+```python
+# Question ticket
+embed_question = discord.Embed(
+    title=f'Question - ¡Hi {interaction.author.name}!',
+    description='In this ticket we have an answer to your question.\n\nIf you cant get someone to help you, press the button `🔔 Call staff`..',
+    color=embed_color
+)
+
+# Help ticket
+embed_question = discord.Embed(
+    title=f'Help - ¡Hi {interaction.author.name}!',
+    description='In this ticket we can help you with whatever you need.\n\nIf you cant get someone to help you, press the button `🔔 Call staff`.',
+    color=embed_color
+)
+
+# Report ticket
+embed_question = discord.Embed(
+    title=f'Report - ¡Hi {interaction.author.name}!',
+    description='In this ticket we can help you with your report.\n\nIf you cant get someone to help you, press the button `🔔 Call staff`.',
+    color=embed_color
+)
+```
+
+Both the `title` and `description` strings are fully editable. The `{interaction.author.name}` placeholder is replaced at runtime and should be kept if you want to greet the user by name. You can use `\n` to add line breaks within the description.
+
+## Adding a New Ticket Type
+
+To add a fourth (or fifth, etc.) ticket type, you need to make three coordinated edits in `main/main.py`.
+
+<Steps>
+  <Step title="Add a new SelectOption">
+    Insert a new `SelectOption` in the `Select` component inside `on_button_click`. Choose a unique `value` — this is the key that links the option to its handler.
+
+    ```python
+    SelectOption(
+        label="Bug Report",
+        value="bug",
+        description='Report a bug or technical issue.',
+        emoji='🐛'
+    )
+    ```
+  </Step>
+  <Step title="Add a matching elif branch in on_select_option">
+    In the `on_select_option` handler, add an `elif` block whose condition matches the `value` you chose above. Copy the structure of an existing branch and adjust the channel name, confirmation message, and embed text.
+
+    ```python
+    elif interaction.values[0] == 'bug':
+
+        channel = await guild.create_text_channel(
+            name=f'🐛┃{interaction.author.name}-ticket',
+            category=category
+        )
+
+        await channel.set_permissions(interaction.guild.get_role(interaction.guild.id),
+                        send_messages=False,
+                        read_messages=False)
+        await channel.set_permissions(interaction.author,
+                                            send_messages=True,
+                                            read_messages=True,
+                                            add_reactions=True,
+                                            embed_links=True,
+                                            attach_files=True,
+                                            read_message_history=True,
+                                            external_emojis=True)
+        await channel.set_permissions(rol_staff,
+                                            send_messages=True,
+                                            read_messages=True,
+                                            add_reactions=True,
+                                            embed_links=True,
+                                            attach_files=True,
+                                            read_message_history=True,
+                                            external_emojis=True,
+                                            manage_messages=True)
+
+        await interaction.send(
+            f'> The {channel.mention} channel was created to handle your bug report.',
+            delete_after=3
+        )
+
+        embed_bug = discord.Embed(
+            title=f'Bug Report - ¡Hi {interaction.author.name}!',
+            description='In this ticket we will investigate the bug you encountered.\n\nIf you cant get someone to help you, press the button `🔔 Call staff`.',
+            color=embed_color
+        )
+        embed_bug.set_thumbnail(url=interaction.author.avatar_url)
+
+        await channel.send(
+            interaction.author.mention,
+            embed=embed_bug,
+            components=[[
+                Button(custom_id='close_ticket', label="Close ticket", style=ButtonStyle.red,  emoji='🔐'),
+                Button(custom_id='call_staff',   label="Call staff",   style=ButtonStyle.blue, emoji='🔔')
+            ]]
+        )
+    ```
+  </Step>
+  <Step title="Restart the bot">
+    Save `main.py` and restart the bot process. The new option will appear in the select menu the next time a user clicks the Create Ticket button.
+  </Step>
+</Steps>

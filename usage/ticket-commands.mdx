@@ -1,0 +1,163 @@
+---
+title: "Ticket Bot Commands and Button Interactions"
+sidebarTitle: "Commands"
+description: "Full reference for the tb!ticket command and every button and select menu interaction the Discord Ticket Bot handles."
+---
+
+The Discord Ticket Bot exposes a single text command that administrators use to post the support panel, plus a set of button and select-menu interactions that drive the entire ticket lifecycle. Understanding each interaction's `custom_id`, trigger, and effect makes it straightforward to trace exactly what the bot will do at every step.
+
+## Text Commands
+
+### `tb!ticket`
+
+| Property | Detail |
+|---|---|
+| **Prefix** | `tb!` |
+| **Permission** | Administrator only (`has_permissions(administrator=True)`) |
+| **Usage** | `tb!ticket` |
+
+Posting this command in any server channel causes the bot to:
+
+1. Delete the message that triggered the command, keeping the channel tidy.
+2. Send an embed titled **Tickets** with the description *"Welcome to tickets system."* and a banner image.
+3. Attach a single green button — **🔧 Create a ticket** — that members click to open a ticket.
+
+```python
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def ticket(ctx):
+    await ctx.message.delete()
+    embed = discord.Embed(
+        title='Tickets',
+        description='Welcome to tickets system.',
+        color=embed_color
+    )
+    embed.set_image(url='https://i.imgur.com/FoI5ITb.png')
+    await ctx.send(
+        embed=embed,
+        components=[
+            Button(custom_id='Ticket', label="Create a ticket",
+                   style=ButtonStyle.green, emoji='🔧')
+        ]
+    )
+```
+
+<Note>
+  Because the bot is initialised with `help_command=None`, there is no `tb!help` command. The only text command exposed to users is `tb!ticket`.
+</Note>
+
+---
+
+## Button Interactions
+
+All button interactions are handled inside the `on_button_click` event. Each button is identified by its `custom_id`.
+
+### `Ticket` — Create a ticket
+
+| Property | Detail |
+|---|---|
+| **custom_id** | `Ticket` |
+| **Style** | Green |
+| **Emoji** | 🔧 |
+| **Trigger** | Member clicks **Create a ticket** on the panel embed |
+| **Effect** | Bot responds with a select menu asking *"How can we help you?"* |
+
+This button appears on the panel posted by `tb!ticket`. Clicking it does not yet create a channel; instead it shows the category select menu so the member can describe the nature of their request.
+
+---
+
+### `call_staff` — Call staff
+
+| Property | Detail |
+|---|---|
+| **custom_id** | `call_staff` |
+| **Style** | Blue |
+| **Emoji** | 🔔 |
+| **Trigger** | Member clicks **Call staff** inside an open ticket channel |
+| **Effect** | Bot sends an embed mentioning the staff role; message auto-deletes after 20 seconds |
+
+The notification embed contains the text `🔔 {member mention} has called the staff.` and pings the configured staff role so members of that role receive a notification.
+
+```python
+elif interaction.component.custom_id == 'call_staff':
+    embed_llamar_staff = discord.Embed(
+        description=f"🔔 {interaction.author.mention} has called the staff.",
+        color=embed_color
+    )
+    await canal.send(f'<@&{id_staff_role}>', embed=embed_llamar_staff, delete_after=20)
+```
+
+---
+
+### `close_ticket` — Close ticket
+
+| Property | Detail |
+|---|---|
+| **custom_id** | `close_ticket` |
+| **Style** | Red |
+| **Emoji** | 🔐 |
+| **Trigger** | Member or staff clicks **Close ticket** inside a ticket channel |
+| **Effect** | Bot sends a confirmation embed with **Yes** and **No** buttons |
+
+The confirmation embed reads *"⚠️ Are you sure you want to close the ticket?"* and requires an explicit confirmation before any channel is deleted.
+
+---
+
+### `close_yes` — Confirm closure
+
+| Property | Detail |
+|---|---|
+| **custom_id** | `close_yes` |
+| **Style** | Green |
+| **Label** | Yes |
+| **Trigger** | User clicks **Yes** on the closure confirmation |
+| **Effect** | Ticket channel is deleted; a log embed is posted to the logs channel |
+
+This is the destructive action — the current ticket channel is permanently deleted. Immediately after deletion the bot posts a structured embed to `id_channel_ticket_logs` recording which ticket was closed and who closed it.
+
+```python
+elif interaction.component.custom_id == 'close_yes':
+    await canal.delete()
+    embed_logs = discord.Embed(
+        title="Tickets",
+        description="",
+        timestamp=datetime.datetime.utcnow(),
+        color=embed_color
+    )
+    embed_logs.add_field(name="Ticket", value=f"{canal.name}", inline=True)
+    embed_logs.add_field(name="Closed by", value=f"{interaction.author.mention}", inline=False)
+    embed_logs.set_thumbnail(url=interaction.author.avatar_url)
+    await canal_logs.send(embed=embed_logs)
+```
+
+---
+
+### `close_no` — Cancel closure
+
+| Property | Detail |
+|---|---|
+| **custom_id** | `close_no` |
+| **Style** | Red |
+| **Label** | No |
+| **Trigger** | User clicks **No** on the closure confirmation |
+| **Effect** | The confirmation message is deleted; the ticket channel remains open |
+
+No channel is affected — only the confirmation message itself is removed, leaving the ticket channel intact.
+
+---
+
+## Select Menu
+
+The select menu (`custom_id="menu"`) is shown in response to the `Ticket` button click. It presents three options under the placeholder text *"How can we help you?"*. Selecting an option triggers the `on_select_option` event, which creates a private ticket channel.
+
+| Option | Value | Emoji | Description shown in menu | Channel name created |
+|---|---|---|---|---|
+| **Question** | `question` | ❔ | If you have a simple question. | `❔┃{username}-ticket` |
+| **Help** | `help` | 🔧 | If you need help from us. | `🔧┃{username}-ticket` |
+| **Report** | `report` | 🚫 | To report a misbehaving user. | `🚫┃{username}-ticket` |
+
+After the channel is created the bot sends an ephemeral-style response (auto-deleted after 3 seconds) to the member confirming the channel was created, then posts a welcome embed inside the new channel. Every ticket channel gets the same two action buttons: **🔐 Close ticket** (red) and **🔔 Call staff** (blue).
+
+<Tip>
+  The channel name embeds the selecting member's Discord username, making it easy to identify who owns a ticket at a glance from the channel list.
+</Tip>

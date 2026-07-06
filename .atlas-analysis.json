@@ -1,0 +1,78 @@
+{
+  "projectType": "general",
+  "projectName": "Discord Ticket Bot",
+  "projectDescription": "A self-hosted Discord ticket bot built with Python that uses buttons and select menus to let server members open, manage, and close support tickets.",
+  "theme": "luma",
+  "primaryColor": "#5865F2",
+  "lightColor": "#7289DA",
+  "darkColor": "#2C2F33",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "setup/installation",
+              "setup/configuration",
+              "setup/bot-registration"
+            ]
+          },
+          {
+            "group": "Usage",
+            "pages": [
+              "usage/running-the-bot",
+              "usage/ticket-commands",
+              "usage/ticket-workflow"
+            ]
+          },
+          {
+            "group": "Customization",
+            "pages": [
+              "customization/customizing-the-bot",
+              "customization/embed-colors"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/bot-commands",
+              "reference/events",
+              "reference/permissions",
+              "reference/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Ticket creation via interactive Discord button",
+    "Select menu to categorize tickets (Question, Help, Report)",
+    "Automatic private ticket channels with scoped permissions",
+    "Call Staff button to ping the staff role inside a ticket",
+    "Close Ticket button with confirmation prompt",
+    "Ticket logs channel with embed summary on close",
+    "Bot status showing total member count across guilds",
+    "Administrator-only ticket panel command"
+  ],
+  "publicApiSurface": [
+    "tb!ticket — deploys the ticket creation panel embed (admin only)",
+    "on_button_click — handles Ticket, call_staff, close_ticket, close_yes, close_no interactions",
+    "on_select_option — handles menu select (question, help, report) to create ticket channels",
+    "on_ready — sets bot watching status",
+    "id_category — configuration variable for ticket channel category",
+    "id_channel_ticket_logs — configuration variable for logs channel",
+    "id_staff_role — configuration variable for staff role",
+    "embed_color — hex color used for all bot embeds",
+    "ComponentsBot prefix: tb!"
+  ]
+}

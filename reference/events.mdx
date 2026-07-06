@@ -1,0 +1,188 @@
+---
+title: "Discord Ticket Bot Event Handlers Reference"
+sidebarTitle: "Events"
+description: "Reference for all three discord.py event handlers defined in main.py: on_ready, on_button_click, and on_select_option and what each one does."
+---
+
+The Discord Ticket Bot is entirely event-driven. Beyond the single text command, all bot behaviour is implemented through three `@bot.event` handlers provided by `discord.py` and the `discord_components` library. `on_ready` handles startup, while `on_button_click` and `on_select_option` together manage the full ticket lifecycle — from opening a ticket to closing it and logging the result.
+
+---
+
+## `on_ready`
+
+**Triggered when:** the bot successfully connects to Discord and has finished loading its internal state.
+
+**Behavior:**
+
+1. Iterates over every guild in `bot.guilds`, accumulating a total member count (subtracting 1 per guild to exclude the bot itself).
+2. Calls `bot.change_presence` to set the bot's status to **Watching `{members} members`**, where `{members}` is the total count computed above.
+3. Prints `Ready to support ✅` to stdout.
+
+```python
+@bot.event
+async def on_ready():
+    members = 0
+    for guild in bot.guilds:
+        members += guild.member_count - 1
+
+    await bot.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f'{members} members'
+    ))
+    print('Ready to support ✅')
+```
+
+---
+
+## `on_button_click(interaction)`
+
+**Triggered when:** any button component in any guild the bot can see is clicked by a user.
+
+**Routing:** the handler dispatches on `interaction.component.custom_id` using a chain of `if/elif` branches.
+
+| `custom_id` | Action |
+|---|---|
+| `Ticket` | Sends an ephemeral select menu with three ticket category options (Question, Help, Report) |
+| `call_staff` | Pings the staff role with a notification embed; auto-deletes after 20 seconds |
+| `close_ticket` | Sends a close-confirmation embed with Yes and No buttons in the ticket channel |
+| `close_yes` | Deletes the ticket channel and posts a log embed to `id_channel_ticket_logs` |
+| `close_no` | Deletes the confirmation message, leaving the ticket open |
+
+```python
+@bot.event
+async def on_button_click(interaction):
+
+    canal = interaction.channel
+    canal_logs = interaction.guild.get_channel(id_channel_ticket_logs)
+
+    # Opens the category select menu
+    if interaction.component.custom_id == "Ticket":
+        await interaction.send(
+            components=[
+                Select(
+                    placeholder="How can we help you?",
+                    options=[
+                        SelectOption(label="Question", value="question",
+                                     description='If you have a simple question.', emoji='❔'),
+                        SelectOption(label="Help",     value="help",
+                                     description='If you need help from us.', emoji='🔧'),
+                        SelectOption(label="Report",   value="report",
+                                     description='To report a misbehaving user.', emoji='🚫'),
+                    ],
+                    custom_id="menu"
+                )
+            ]
+        )
+
+    # Pings staff role with auto-deleting embed
+    elif interaction.component.custom_id == 'call_staff':
+        embed_llamar_staff = discord.Embed(
+            description=f"🔔 {interaction.author.mention} has called the staff.",
+            color=embed_color
+        )
+        await canal.send(f'<@&{id_staff_role}>', embed=embed_llamar_staff, delete_after=20)
+
+    # Sends close confirmation with Yes/No buttons
+    elif interaction.component.custom_id == 'close_ticket':
+        embed_cerrar_ticket = discord.Embed(
+            description="⚠️ Are you sure you want to close the ticket?",
+            color=embed_color
+        )
+        await canal.send(
+            interaction.author.mention,
+            embed=embed_cerrar_ticket,
+            components=[[
+                Button(custom_id='close_yes', label="Yes", style=ButtonStyle.green),
+                Button(custom_id='close_no',  label="No",  style=ButtonStyle.red)
+            ]]
+        )
+
+    # Deletes channel and sends log embed
+    elif interaction.component.custom_id == 'close_yes':
+        await canal.delete()
+        embed_logs = discord.Embed(
+            title="Tickets",
+            description="",
+            timestamp=datetime.datetime.utcnow(),
+            color=embed_color
+        )
+        embed_logs.add_field(name="Ticket",    value=f"{canal.name}",              inline=True)
+        embed_logs.add_field(name="Closed by", value=f"{interaction.author.mention}", inline=False)
+        embed_logs.set_thumbnail(url=interaction.author.avatar_url)
+        await canal_logs.send(embed=embed_logs)
+
+    # Deletes the confirmation message, ticket stays open
+    elif interaction.component.custom_id == 'close_no':
+        await interaction.message.delete()
+```
+
+---
+
+## `on_select_option(interaction)`
+
+**Triggered when:** a user picks an option from any select menu the bot has rendered.
+
+**Routing:** the handler first checks `interaction.component.custom_id == "menu"`, then branches on `interaction.values[0]` to determine which ticket category was selected.
+
+| `interaction.values[0]` | Channel name | Welcome embed title |
+|---|---|---|
+| `question` | `❔┃{username}-ticket` | `Question - ¡Hi {username}!` |
+| `help` | `🔧┃{username}-ticket` | `Help - ¡Hi {username}!` |
+| `report` | `🚫┃{username}-ticket` | `Report - ¡Hi {username}!` |
+
+**For each value, the handler performs the same sequence of steps:**
+
+1. Resolves the target category (`id_category`) and the staff role (`id_staff_role`) from the guild.
+2. Creates a new text channel with the appropriate emoji-prefixed name under the resolved category.
+3. Sets three permission overrides on the new channel:
+   - **`@everyone`** — `send_messages=False`, `read_messages=False` (hides the channel from non-participants).
+   - **Ticket creator** — `send_messages`, `read_messages`, `add_reactions`, `embed_links`, `attach_files`, `read_message_history`, `external_emojis` all set to `True`.
+   - **Staff role** — same as the ticket creator, plus `manage_messages=True`.
+4. Sends the user an ephemeral confirmation message pointing to the new channel (auto-deletes after 3 seconds).
+5. Posts the welcome embed with a **🔐 Close ticket** button and a **🔔 Call staff** button inside the new channel, mentioning the ticket creator.
+
+```python
+@bot.event
+async def on_select_option(interaction):
+    if interaction.component.custom_id == "menu":
+
+        guild     = interaction.guild
+        category  = discord.utils.get(interaction.guild.categories, id=id_category)
+        rol_staff = discord.utils.get(interaction.guild.roles, id=id_staff_role)
+
+        if interaction.values[0] == 'question':
+            channel = await guild.create_text_channel(
+                name=f'❔┃{interaction.author.name}-ticket', category=category
+            )
+            # ... set_permissions for @everyone, author, rol_staff ...
+            await interaction.send(
+                f'> The {channel.mention} channel was created to solve your questions.',
+                delete_after=3
+            )
+            embed_question = discord.Embed(
+                title=f'Question - ¡Hi {interaction.author.name}!',
+                description='In this ticket we have an answer to your question.\n\n'
+                            'If you cant get someone to help you, press the button `🔔 Call staff`..',
+                color=embed_color
+            )
+            embed_question.set_thumbnail(url=interaction.author.avatar_url)
+            await channel.send(
+                interaction.author.mention, embed=embed_question,
+                components=[[
+                    Button(custom_id='close_ticket', label="Close ticket",
+                           style=ButtonStyle.red,  emoji='🔐'),
+                    Button(custom_id='call_staff',   label="Call staff",
+                           style=ButtonStyle.blue, emoji='🔔')
+                ]]
+            )
+
+        elif interaction.values[0] == 'help':
+            # Same pattern — channel name: 🔧┃{username}-ticket
+            # Embed title: Help - ¡Hi {username}!
+            ...
+
+        elif interaction.values[0] == 'report':
+            # Same pattern — channel name: 🚫┃{username}-ticket
+            # Embed title: Report - ¡Hi {username}!
+            ...
+```

@@ -1,0 +1,90 @@
+---
+title: "Required Discord Permissions for Ticket Bot"
+sidebarTitle: "Permissions"
+description: "All Discord permissions the Ticket Bot requires at the server and channel level, including per-ticket permission overrides applied to every new channel."
+---
+
+The Discord Ticket Bot creates and deletes channels, sends embeds, pings roles, and manages per-channel permission overrides on the fly. For all of this to work correctly, the bot's own role must be granted a specific set of permissions in your server. Granting too few permissions causes silent failures — channels won't be created, staff won't be pinged, or logs won't be posted.
+
+---
+
+## Bot Permissions Required
+
+Grant these permissions to the bot's role in **Server Settings → Roles**:
+
+| Permission | Why it's needed |
+|---|---|
+| **Manage Channels** | Creates a new text channel per ticket and deletes it when the ticket is closed |
+| **Send Messages** | Posts embeds, button messages, and notifications in ticket channels and the log channel |
+| **Read Messages / View Channels** | Reads messages and sees channels so event handlers can access `interaction.channel` |
+| **Embed Links** | Sends rich embeds for the ticket panel, welcome messages, staff pings, and ticket logs |
+| **Attach Files** | (Optional) Allows staff and users to share screenshots and files inside ticket channels |
+| **Read Message History** | Reads existing messages in ticket channels so the bot can respond in context |
+| **Manage Messages** | Deletes the `tb!ticket` invoking message and removes close-confirmation messages on demand |
+| **Add Reactions** | Allows the bot and users to add reactions inside ticket channels |
+| **Mention @everyone, @here, and All Roles** | Pings the staff role (`<@&id_staff_role>`) when the **🔔 Call staff** button is pressed |
+
+---
+
+## Channel-Level Permission Overrides
+
+When a ticket channel is created, `on_select_option` applies three explicit permission overrides to that specific channel. These overrides are set programmatically via `channel.set_permissions(...)`:
+
+### `@everyone` (the default role)
+
+Hides the ticket channel from everyone who is not explicitly granted access.
+
+| Permission | Value |
+|---|---|
+| `send_messages` | `False` |
+| `read_messages` | `False` |
+
+### Ticket creator
+
+Gives the person who opened the ticket full access to their private channel.
+
+| Permission | Value |
+|---|---|
+| `read_messages` | `True` |
+| `send_messages` | `True` |
+| `add_reactions` | `True` |
+| `embed_links` | `True` |
+| `attach_files` | `True` |
+| `read_message_history` | `True` |
+| `external_emojis` | `True` |
+
+### Staff role
+
+Grants staff members the same access as the ticket creator, plus the ability to delete messages in the ticket channel.
+
+| Permission | Value |
+|---|---|
+| `read_messages` | `True` |
+| `send_messages` | `True` |
+| `add_reactions` | `True` |
+| `embed_links` | `True` |
+| `attach_files` | `True` |
+| `read_message_history` | `True` |
+| `external_emojis` | `True` |
+| `manage_messages` | `True` |
+
+---
+
+## Command Permission
+
+The `tb!ticket` text command is protected by the `@commands.has_permissions(administrator=True)` decorator. Any user who does not hold the **Administrator** permission in the server will receive no response when invoking the command — it is silently ignored.
+
+```python
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def ticket(ctx):
+    ...
+```
+
+Only server administrators should need this command; it is intended to be run once (or rarely) to post the ticket panel in a designated channel.
+
+---
+
+<Note>
+  The bot's role must be positioned **above the staff role** in the server's role hierarchy (Server Settings → Roles, drag to reorder). Discord enforces that a bot can only modify permissions for roles ranked below its own highest role. If the bot's role is below or equal to the staff role, `channel.set_permissions(rol_staff, ...)` will raise a `Forbidden` error and the ticket channel will be created without the correct staff access.
+</Note>

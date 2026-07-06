@@ -1,0 +1,214 @@
+---
+title: "Bot Commands Reference: tb!ticket and Interactions"
+sidebarTitle: "Bot Commands"
+description: "Full reference for every command and interaction the Discord Ticket Bot responds to, including tb!ticket, buttons, and select menus."
+---
+
+The Discord Ticket Bot exposes a single text command (`tb!ticket`) and a set of component interactions — buttons and a select menu — that drive the entire ticket lifecycle. All component interactions are identified by their `custom_id` values, which are hardcoded in `main.py`. Understanding both the command and the interaction surface is essential for operating and extending the bot.
+
+## Text Commands
+
+### `tb!ticket`
+
+Sends the ticket panel embed into the current channel. This is the entry point for the entire ticket system; users open tickets by clicking the button that this command posts.
+
+| Detail | Value |
+|---|---|
+| **Full command** | `tb!ticket` |
+| **Required permission** | Administrator |
+| **Side effect** | The invoking message is deleted immediately |
+
+**What it sends:**
+
+- A Discord embed with the title **"Tickets"** and the description *"Welcome to tickets system."*
+- A banner image pulled from `https://i.imgur.com/FoI5ITb.png`
+- A single green **🔧 Create a ticket** button (custom_id: `Ticket`)
+
+```python
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def ticket(ctx):
+    await ctx.message.delete()
+
+    embed = discord.Embed(
+        title='Tickets',
+        description='Welcome to tickets system.',
+        color=embed_color
+    )
+    embed.set_image(url='https://i.imgur.com/FoI5ITb.png')
+
+    await ctx.send(
+        embed=embed,
+        components=[
+            Button(
+                custom_id='Ticket',
+                label="Create a ticket",
+                style=ButtonStyle.green,
+                emoji='🔧'
+            )
+        ]
+    )
+```
+
+<Note>
+  The default bot prefix is `tb!`, set in the `ComponentsBot` constructor: `bot = ComponentsBot('tb!', help_command=None)`. You can change `'tb!'` to any string you prefer.
+</Note>
+
+---
+
+## Component Interactions
+
+Component interactions are triggered when users click buttons or select options from a dropdown. The bot routes each interaction by inspecting `interaction.component.custom_id`.
+
+<Warning>
+  All `custom_id` values (`Ticket`, `menu`, `call_staff`, `close_ticket`, `close_yes`, `close_no`) are hardcoded throughout `main.py`. Do **not** change these values unless you update every reference to them simultaneously — mismatches will silently break routing.
+</Warning>
+
+### Button: `Ticket`
+
+**Triggered by:** clicking the green **🔧 Create a ticket** button on the ticket panel embed.
+
+When clicked, the bot responds with an ephemeral select menu (`custom_id: "menu"`) containing three ticket category options:
+
+| Label | Value | Description | Emoji |
+|---|---|---|---|
+| Question | `question` | If you have a simple question. | ❔ |
+| Help | `help` | If you need help from us. | 🔧 |
+| Report | `report` | To report a misbehaving user. | 🚫 |
+
+The select menu placeholder text reads **"How can we help you?"**.
+
+```python
+if interaction.component.custom_id == "Ticket":
+    await interaction.send(
+        components=[
+            Select(
+                placeholder="How can we help you?",
+                options=[
+                    SelectOption(label="Question", value="question",
+                                 description='If you have a simple question.', emoji='❔'),
+                    SelectOption(label="Help", value="help",
+                                 description='If you need help from us.', emoji='🔧'),
+                    SelectOption(label="Report", value="report",
+                                 description='To report a misbehaving user.', emoji='🚫'),
+                ],
+                custom_id="menu"
+            )
+        ]
+    )
+```
+
+---
+
+### Select: `menu`
+
+**Triggered by:** the user selecting one of the three options from the category select menu.
+
+The bot reads `interaction.values[0]` to determine which category was chosen and then creates a private ticket channel under `id_category`. Each option results in a differently-named and -titled channel:
+
+| Value | Channel name | Welcome embed title |
+|---|---|---|
+| `question` | `❔┃{username}-ticket` | `Question - ¡Hi {username}!` |
+| `help` | `🔧┃{username}-ticket` | `Help - ¡Hi {username}!` |
+| `report` | `🚫┃{username}-ticket` | `Report - ¡Hi {username}!` |
+
+After creating the channel, the bot:
+
+1. Restricts `@everyone` from reading or sending messages in the new channel.
+2. Grants the ticket creator full read/write/reaction/embed/file/history/external-emoji access.
+3. Grants the staff role the same permissions **plus** `manage_messages`.
+4. Sends the user an ephemeral confirmation message (auto-deletes after 3 seconds) mentioning the new channel.
+5. Posts a welcome embed with two action buttons — **🔐 Close ticket** (`close_ticket`) and **🔔 Call staff** (`call_staff`) — inside the new channel.
+
+---
+
+### Button: `call_staff`
+
+**Triggered by:** clicking the **🔔 Call staff** button inside an open ticket channel.
+
+Sends a message in the ticket channel that pings the configured staff role (`<@&id_staff_role>`) alongside an embed:
+
+> 🔔 `{author.mention}` has called the staff.
+
+The message is automatically deleted after **20 seconds**.
+
+```python
+elif interaction.component.custom_id == 'call_staff':
+    embed_llamar_staff = discord.Embed(
+        description=f"🔔 {interaction.author.mention} has called the staff.",
+        color=embed_color
+    )
+    await canal.send(f'<@&{id_staff_role}>', embed=embed_llamar_staff, delete_after=20)
+```
+
+---
+
+### Button: `close_ticket`
+
+**Triggered by:** clicking the **🔐 Close ticket** button inside an open ticket channel.
+
+Sends a confirmation embed in the ticket channel mentioning the user who clicked:
+
+> ⚠️ Are you sure you want to close the ticket?
+
+The confirmation message includes two inline buttons: a green **Yes** button (`close_yes`) and a red **No** button (`close_no`).
+
+```python
+elif interaction.component.custom_id == 'close_ticket':
+    embed_cerrar_ticket = discord.Embed(
+        description="⚠️ Are you sure you want to close the ticket?",
+        color=embed_color
+    )
+    await canal.send(
+        interaction.author.mention,
+        embed=embed_cerrar_ticket,
+        components=[[
+            Button(custom_id='close_yes', label="Yes", style=ButtonStyle.green),
+            Button(custom_id='close_no',  label="No",  style=ButtonStyle.red)
+        ]]
+    )
+```
+
+---
+
+### Button: `close_yes`
+
+**Triggered by:** clicking the green **Yes** button on the close confirmation message.
+
+Permanently deletes the current ticket channel and then sends a log embed to the channel configured as `id_channel_ticket_logs`. The log embed contains:
+
+| Field | Value |
+|---|---|
+| **Title** | Tickets |
+| **Ticket** (inline field) | The deleted channel's name |
+| **Closed by** | The user who clicked Yes (mention) |
+| **Timestamp** | `datetime.datetime.utcnow()` |
+| **Thumbnail** | The closer's avatar |
+
+```python
+elif interaction.component.custom_id == 'close_yes':
+    await canal.delete()
+    embed_logs = discord.Embed(
+        title="Tickets",
+        description="",
+        timestamp=datetime.datetime.utcnow(),
+        color=embed_color
+    )
+    embed_logs.add_field(name="Ticket", value=f"{canal.name}", inline=True)
+    embed_logs.add_field(name="Closed by", value=f"{interaction.author.mention}", inline=False)
+    embed_logs.set_thumbnail(url=interaction.author.avatar_url)
+    await canal_logs.send(embed=embed_logs)
+```
+
+---
+
+### Button: `close_no`
+
+**Triggered by:** clicking the red **No** button on the close confirmation message.
+
+Deletes the confirmation message, leaving the ticket channel open and intact. No embed or further response is sent.
+
+```python
+elif interaction.component.custom_id == 'close_no':
+    await interaction.message.delete()
+```

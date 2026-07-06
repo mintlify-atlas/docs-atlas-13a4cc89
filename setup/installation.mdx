@@ -1,0 +1,80 @@
+---
+title: "Install Discord Ticket Bot and Its Dependencies"
+sidebarTitle: "Installation"
+description: "Clone the Discord Ticket Bot repository and install its Python dependencies to get your environment ready to run the bot."
+---
+
+Getting the bot running locally starts with pulling down the source code and installing the two Python packages it depends on. This guide walks you through cloning the repository, installing dependencies with pip, and verifying that everything is in place before you move on to configuration.
+
+## Requirements
+
+Before you begin, make sure the following are available on your system:
+
+- **Python 3.8 or higher** — the bot uses `async`/`await` syntax and discord.py 2.0
+- **pip** — Python's package installer, bundled with most Python distributions
+- **git** — used to clone the repository and to install `discord_components` directly from its GitHub source
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Run the following commands to download the project and move into its directory:
+
+    ```bash
+    git clone https://github.com/astrxnomo/discord-ticket-bot-py.git
+    cd discord-ticket-bot-py
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required packages in one command using the provided `req.txt` file:
+
+    ```bash
+    pip install -r req.txt
+    ```
+
+    The contents of `req.txt` are:
+
+    ```
+    git+https://github.com/kiki7000/discord.py-components
+    discord.py==2.0.0
+    ```
+
+    This installs two packages:
+    - **discord.py 2.0.0** — the core Discord API wrapper the bot is built on.
+    - **discord_components** — installed directly from its GitHub source via the `git+` URL. This library provides the `ComponentsBot`, `Button`, `Select`, and `SelectOption` classes the bot uses to render interactive menus and buttons inside Discord.
+  </Step>
+
+  <Step title="Verify the installation">
+    Confirm that both packages were installed correctly by running a quick import check:
+
+    ```bash
+    python -c "import discord; from discord_components import ComponentsBot; print('OK')"
+    ```
+
+    If the output is `OK`, your environment is ready. If you see an `ImportError`, revisit the previous step and ensure pip completed without errors.
+  </Step>
+</Steps>
+
+<Note>
+  It is strongly recommended to use a **virtual environment** to keep the bot's dependencies isolated from other Python projects on your machine. Create and activate one before running `pip install`:
+
+  ```bash
+  # Create the virtual environment
+  python -m venv venv
+
+  # Activate it — macOS / Linux
+  source venv/bin/activate
+
+  # Activate it — Windows
+  venv\Scripts\activate
+  ```
+
+  Once activated, run `pip install -r req.txt` as normal. The packages will be installed only inside the virtual environment.
+</Note>
+
+With installation complete, the next step is to register your bot application on the Discord Developer Portal.
+
+<Card title="Bot Registration" icon="discord" href="/setup/bot-registration">
+  Create a Discord application, add a bot account, and generate your bot token.
+</Card>

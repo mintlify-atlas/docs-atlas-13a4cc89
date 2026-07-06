@@ -1,0 +1,118 @@
+---
+title: "Configure Discord Ticket Bot Parameters"
+sidebarTitle: "Configuration"
+description: "Set the four configuration variables in main.py — category ID, logs channel ID, staff role ID, and embed color — to connect the bot to your server."
+---
+
+All configuration for the Discord Ticket Bot lives at the top of `main/main.py`. There is no separate config file or environment-variable system — you edit four variables directly in the source before running the bot. This page explains what each variable controls, how to find the Discord IDs you need, and how to supply your bot token and choose a command prefix.
+
+## Configuration Block
+
+Open `main/main.py` and locate the following lines near the top of the file:
+
+```python
+id_category = #put here the id of the category where the bot will create the ticket channels
+id_channel_ticket_logs = #put here the id of the channel where the bot will create the ticket logs
+id_staff_role = #put here the id of the staff role
+embed_color = 0xfcd005 #put here a hex color that will carry all the embeds sent by the bot
+```
+
+Replace each placeholder comment with the appropriate integer ID or hex value for your Discord server.
+
+## Configuration Variables
+
+<ParamField path="id_category" type="integer" required>
+  The ID of the Discord **category** under which the bot will create new ticket channels. Every time a user opens a ticket, a text channel is created inside this category. Make sure the bot has permission to manage channels within it.
+
+  ```python
+  id_category = 987654321098765432
+  ```
+</ParamField>
+
+<ParamField path="id_channel_ticket_logs" type="integer" required>
+  The ID of the **text channel** where the bot posts a summary embed whenever a ticket is closed. The embed records the ticket channel name, the timestamp, and the staff member who closed it. The bot must have permission to send messages and embed links in this channel.
+
+  ```python
+  id_channel_ticket_logs = 123456789012345678
+  ```
+</ParamField>
+
+<ParamField path="id_staff_role" type="integer" required>
+  The ID of the **staff role**. This role is used in two ways: its members are granted read and write access to every ticket channel that is created, and it is mentioned (pinged) inside the ticket when a user presses the **🔔 Call Staff** button.
+
+  ```python
+  id_staff_role = 111222333444555666
+  ```
+</ParamField>
+
+<ParamField path="embed_color" type="hex integer" default="0xfcd005">
+  A hexadecimal color value applied to every embed the bot sends — ticket creation messages, call-staff notifications, close confirmations, and log entries. Change this to match your server's branding. The default is a golden yellow (`0xfcd005`).
+
+  ```python
+  embed_color = 0x5865F2  # Discord blurple, for example
+  ```
+</ParamField>
+
+## How to Find Discord IDs
+
+Discord IDs are large integers that uniquely identify servers, channels, categories, roles, and users. To copy them you must first enable **Developer Mode**:
+
+1. Open **Discord** and go to **User Settings** (the gear icon near your username).
+2. Navigate to **Advanced** under the App Settings section.
+3. Toggle **Developer Mode** on.
+
+Once Developer Mode is enabled:
+
+- **Category ID** — right-click the category name in your server's channel list and select **Copy Channel ID**.
+- **Channel ID** — right-click any text channel and select **Copy Channel ID**.
+- **Role ID** — go to **Server Settings → Roles**, right-click the role you want, and select **Copy Role ID**.
+
+Paste each copied value directly into the corresponding variable in `main.py`.
+
+## Bot Token
+
+At the very bottom of `main/main.py` you will find:
+
+```python
+bot.run('')
+```
+
+Place your bot token between the two quotes so it reads:
+
+```python
+bot.run('YOUR_BOT_TOKEN_HERE')
+```
+
+<Warning>
+  **Never commit a real bot token to version control.** Anyone who obtains your token can take full control of your bot. If you accidentally expose a token, immediately go to the [Discord Developer Portal](https://discord.com/developers/applications), navigate to your application's **Bot** tab, and click **Reset Token** to invalidate the old one. Consider using a `.env` file and a library such as `python-dotenv` to keep the token out of your source code.
+</Warning>
+
+## Changing the Bot Prefix
+
+The command prefix is set on this line near the top of `main/main.py`:
+
+```python
+bot = ComponentsBot('tb!', help_command=None)
+```
+
+The default prefix is `tb!`, meaning users invoke the ticket panel setup with `tb!ticket`. Change `'tb!'` to any string you prefer:
+
+```python
+bot = ComponentsBot('!', help_command=None)   # use !ticket
+bot = ComponentsBot('>', help_command=None)   # use >ticket
+bot = ComponentsBot('ticket ', help_command=None)  # use "ticket ticket"
+```
+
+Choose a prefix that does not conflict with other bots already in your server.
+
+---
+
+With configuration complete, you can head back to review bot registration or move on to running the bot:
+
+<Card title="Bot Registration" icon="discord" href="/setup/bot-registration">
+  Register your application on the Discord Developer Portal and generate a token.
+</Card>
+
+<Card title="Running the Bot" icon="play" href="/usage/running-the-bot">
+  Start the bot and use the `tb!ticket` command to deploy the ticket panel.
+</Card>

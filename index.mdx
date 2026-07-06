@@ -1,20 +1,62 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Discord Ticket Bot: Self-Hosted Support Tickets for Discord"
+sidebarTitle: "Home"
+description: "A self-hosted Discord bot that lets server members open, manage, and close support tickets using interactive buttons and select menus."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+Discord Ticket Bot is an open-source, self-hosted Python bot that brings a full ticket management system to your Discord server. Powered by `discord.py` and the Discord Components Library, it uses interactive buttons and select menus so members can create private support channels without any slash-command friction.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what Discord Ticket Bot is and how it works under the hood.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo, install dependencies, and have the bot running in minutes.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/setup/configuration">
+    Set your category, logs channel, staff role, and embed color.
+  </Card>
+  <Card title="Bot Commands" icon="terminal" href="/reference/bot-commands">
+    Full reference for every command and interaction the bot handles.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## How It Works
+
+<Steps>
+  <Step title="Clone & Install">
+    Clone the repository and install dependencies with `pip install -r req.txt`.
+  </Step>
+  <Step title="Register Your Bot">
+    Create a Discord application, add a bot account, and invite it to your server with the required permissions.
+  </Step>
+  <Step title="Configure the Bot">
+    Open `main/main.py` and fill in your category ID, logs channel ID, staff role ID, and bot token.
+  </Step>
+  <Step title="Run and Deploy">
+    Start the bot with `python main/main.py`. Type `tb!ticket` in any channel to post the ticket panel.
+  </Step>
+</Steps>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Interactive Ticket Creation" icon="ticket">
+    Members click a single button to open a ticket — no commands to remember.
+  </Card>
+  <Card title="Ticket Categories" icon="list">
+    Select menus let users choose Question, Help, or Report before a channel is created.
+  </Card>
+  <Card title="Scoped Channel Permissions" icon="lock">
+    Each ticket channel is visible only to the ticket creator and your staff role.
+  </Card>
+  <Card title="Staff Notifications" icon="bell">
+    A built-in Call Staff button pings your staff role directly inside the ticket channel.
+  </Card>
+  <Card title="Confirmed Close Flow" icon="circle-check">
+    Closing a ticket requires confirmation, preventing accidental deletions.
+  </Card>
+  <Card title="Ticket Logs" icon="clipboard-list">
+    Every closed ticket is automatically logged in a dedicated channel with closer details.
+  </Card>
+</CardGroup>

@@ -1,0 +1,80 @@
+---
+title: "Discord Ticket Bot: Open-Source Support Tickets for Discord"
+sidebarTitle: "Introduction"
+description: "Discord Ticket Bot is a self-hosted Python bot that creates private, per-user support ticket channels using discord.py, buttons, and select menus."
+---
+
+This page introduces the Discord Ticket Bot project — a self-hosted support ticket system for Discord servers built with Python. The bot leverages the `discord.py` library alongside the `discord-components` library to power interactive buttons and select menus, and responds to commands under the `tb!` prefix.
+
+<Note>
+  This documentation assumes you are familiar with Python basics and have a working understanding of discord.py. Code-level explanations of Python fundamentals are out of scope.
+</Note>
+
+## What is Discord Ticket Bot?
+
+Discord Ticket Bot is an open-source, self-hosted Discord bot that gives server administrators a structured support ticket system. Instead of asking users to DM staff directly or post in a public channel, the bot creates a private text channel for each ticket — visible only to the user who opened it and members of a designated staff role.
+
+Users interact entirely through Discord's native UI components: a green **Create a ticket** button posts the initial prompt, and a dropdown select menu lets the user categorize their issue before a dedicated channel is created. This keeps ticket management organized, auditable, and free of third-party services.
+
+Because the bot is self-hosted, you have full control over where it runs, which server it joins, and how it is configured. There are no subscriptions, no rate-limited cloud tiers, and no external dashboards — just a single Python file and a bot token.
+
+## Architecture Overview
+
+The entire bot lives in a single file: `main/main.py`. It is built on `ComponentsBot` from the `discord_components` library, which extends the standard `discord.ext.commands.Bot` with support for message component interactions.
+
+The bot is event-driven. After the initial `tb!ticket` command posts the panel embed, all subsequent user interactions are handled by two event listeners:
+
+- **`on_button_click(interaction)`** — fires whenever a user clicks any button registered by the bot. It dispatches on `interaction.component.custom_id` to handle `Ticket` (opens the select menu), `call_staff` (pings the staff role), `close_ticket` (prompts for confirmation), `close_yes` (deletes the channel and writes to ticket logs), and `close_no` (dismisses the confirmation message).
+- **`on_select_option(interaction)`** — fires when the user picks an option from the "How can we help you?" dropdown. It branches on `interaction.values[0]` — `question`, `help`, or `report` — and creates the appropriately named and permissioned private channel for each case.
+
+There are no cogs, no database dependencies, and no external HTTP calls. Configuration is done by editing four variables at the top of `main.py` before running the bot.
+
+## Ticket Lifecycle
+
+The following steps trace the complete journey of a support ticket from first click to final log entry.
+
+<Steps>
+  <Step title="User clicks Create a ticket">
+    A server administrator runs `tb!ticket` in any channel, which posts a `Tickets` embed with a green 🔧 **Create a ticket** button. Any member can click this button to start a ticket.
+  </Step>
+  <Step title="Select menu appears">
+    Clicking the button triggers `on_button_click` with `custom_id == "Ticket"`. The bot responds with an ephemeral-style message containing a **Select** dropdown: *How can we help you?* The user chooses one of three options — ❔ Question, 🔧 Help, or 🚫 Report.
+  </Step>
+  <Step title="Private ticket channel is created">
+    The `on_select_option` handler creates a new text channel inside the configured category. The channel is named after the ticket type and the user (e.g., `❔┃username-ticket`). Permissions are set so only the ticket author and the staff role can see and write in it; everyone else is denied access.
+  </Step>
+  <Step title="Staff interaction">
+    Inside the ticket channel, the bot sends a welcome embed addressed to the user. Two buttons are available: 🔐 **Close ticket** and 🔔 **Call staff**. Pressing **Call staff** mentions the staff role with a 🔔 notification embed that auto-deletes after 20 seconds.
+  </Step>
+  <Step title="Close confirmation">
+    When **Close ticket** is pressed, the bot sends a confirmation embed asking *Are you sure you want to close the ticket?* with **Yes** (green) and **No** (red) buttons.
+  </Step>
+  <Step title="Channel deletion and ticket log">
+    Confirming with **Yes** deletes the ticket channel immediately. The bot then posts a structured log embed to the configured ticket-logs channel, recording the channel name, who closed the ticket, and a UTC timestamp. Pressing **No** simply deletes the confirmation message and leaves the ticket open.
+  </Step>
+</Steps>
+
+## Requirements
+
+Before running the bot, make sure the following are in place:
+
+| Requirement | Details |
+|---|---|
+| **Python** | 3.8 or higher |
+| **discord.py** | Exactly `2.0.0` (pinned in `req.txt`) |
+| **discord-components** | Installed from GitHub: `git+https://github.com/kiki7000/discord.py-components` |
+| **Discord bot token** | Obtained from the [Discord Developer Portal](https://discord.com/developers/applications) |
+| **Server permissions** | The bot account needs `Administrator` to manage channels and roles |
+
+Both Python dependencies are declared in `req.txt` and can be installed with a single `pip install -r req.txt` command.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Clone the repo, install dependencies, fill in the config variables, and get the bot online in minutes.
+  </Card>
+  <Card title="Installation" icon="wrench" href="/setup/installation">
+    Detailed walkthrough of creating a Discord application, adding a bot account, and inviting it to your server.
+  </Card>
+</CardGroup>

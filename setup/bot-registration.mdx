@@ -1,0 +1,78 @@
+---
+title: "Register and Invite Your Discord Bot Application"
+sidebarTitle: "Bot Registration"
+description: "Create a Discord application, add a bot account, enable required intents, obtain your bot token, and invite the bot to your server."
+---
+
+Before the bot can connect to Discord it must be registered as an application in the Discord Developer Portal. Registration gives you a unique bot account, the token used to authenticate the bot when it starts, and the OAuth2 invite link you use to add the bot to your server. This guide covers every step from creating the application to granting the bot the permissions it needs to manage ticket channels.
+
+<Steps>
+  <Step title="Create an Application">
+    1. Go to [https://discord.com/developers/applications](https://discord.com/developers/applications) and log in with your Discord account.
+    2. Click **New Application** in the top-right corner.
+    3. Enter a name for your application (e.g. `Ticket Bot`) and click **Create**.
+
+    You will land on the application's **General Information** page. The application name and avatar shown here are separate from the bot's username — you can update the bot's display name on the Bot tab in the next step.
+  </Step>
+
+  <Step title="Add a Bot Account">
+    1. In the left-hand sidebar, click **Bot**.
+    2. Click **Add Bot**, then confirm by clicking **Yes, do it!**
+    3. Optionally update the bot's **username** and upload a custom **avatar** to match your server's branding.
+
+    Once the bot account exists you will see the token section on this page — you will use it in a later step.
+  </Step>
+
+  <Step title="Enable Privileged Intents">
+    Still on the **Bot** tab, scroll down to the **Privileged Gateway Intents** section and enable the following two intents:
+
+    - **Server Members Intent** — required for the bot to read guild member data (used when building the watching-members status on startup).
+    - **Message Content Intent** — required for the bot to read message content and respond to prefix commands such as `tb!ticket`.
+
+    Click **Save Changes** after toggling both intents on.
+  </Step>
+
+  <Step title="Get Your Bot Token">
+    1. On the **Bot** tab, click **Reset Token** and confirm the action.
+    2. Copy the token that appears. You will paste it into `main/main.py` in the [Configuration](/setup/configuration) step.
+
+    <Warning>
+      **Never share your bot token with anyone.** A token grants complete programmatic control over your bot account. If your token is ever exposed publicly, return to this page immediately, click **Reset Token** again to invalidate the old token, and update your `main.py` with the new one.
+    </Warning>
+  </Step>
+
+  <Step title="Invite Your Bot to Your Server">
+    1. In the left-hand sidebar, navigate to **OAuth2 → URL Generator**.
+    2. Under **Scopes**, select:
+       - `bot`
+       - `applications.commands`
+    3. Under **Bot Permissions**, select the following permissions (all of which the bot uses at runtime):
+
+       | Permission | Why it's needed |
+       |---|---|
+       | Manage Channels | Creates and deletes ticket channels |
+       | Send Messages | Posts ticket embeds and notifications |
+       | Read Messages / View Channels | Reads commands and button interactions |
+       | Embed Links | Sends rich embed messages |
+       | Attach Files | Allows file attachments within tickets |
+       | Read Message History | Accesses previous messages in ticket channels |
+       | Manage Messages | Deletes the original command message after `tb!ticket` |
+       | Add Reactions | Reserved for future reaction-based interactions |
+       | Mention Everyone | Pings the staff role when a user calls for help |
+
+    4. Scroll to the bottom of the page and copy the generated **invite URL**.
+    5. Paste the URL into your browser, select the server you want to add the bot to, and click **Authorize**.
+
+    The bot will now appear in your server's member list, though it will show as offline until you start it.
+  </Step>
+</Steps>
+
+<Note>
+  The bot requires either **Administrator** permission or all of the specific permissions listed in Step 5 to function correctly. If you prefer to use Administrator for simplicity during development, select that permission in the URL Generator instead. For production servers, granting only the minimum required permissions is strongly recommended.
+</Note>
+
+With your bot registered and in your server, the next step is to fill in the four configuration variables in `main/main.py`.
+
+<Card title="Configuration" icon="gear" href="/setup/configuration">
+  Set your category ID, logs channel ID, staff role ID, embed color, and bot token.
+</Card>
