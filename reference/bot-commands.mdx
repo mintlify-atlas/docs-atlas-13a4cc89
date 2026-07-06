@@ -68,7 +68,7 @@ Component interactions are triggered when users click buttons or select options 
 
 **Triggered by:** clicking the green **🔧 Create a ticket** button on the ticket panel embed.
 
-When clicked, the bot responds with an ephemeral select menu (`custom_id: "menu"`) containing three ticket category options:
+When clicked, the bot responds with a select menu (`custom_id: "menu"`) containing three ticket category options:
 
 | Label | Value | Description | Emoji |
 |---|---|---|---|
@@ -117,7 +117,7 @@ After creating the channel, the bot:
 1. Restricts `@everyone` from reading or sending messages in the new channel.
 2. Grants the ticket creator full read/write/reaction/embed/file/history/external-emoji access.
 3. Grants the staff role the same permissions **plus** `manage_messages`.
-4. Sends the user an ephemeral confirmation message (auto-deletes after 3 seconds) mentioning the new channel.
+4. Sends the user a confirmation message (auto-deletes after 3 seconds) mentioning the new channel.
 5. Posts a welcome embed with two action buttons — **🔐 Close ticket** (`close_ticket`) and **🔔 Call staff** (`call_staff`) — inside the new channel.
 
 ---

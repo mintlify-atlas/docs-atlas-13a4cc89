@@ -84,7 +84,7 @@ bot.run('YOUR_BOT_TOKEN_HERE')
 ```
 
 <Warning>
-  **Never commit a real bot token to version control.** Anyone who obtains your token can take full control of your bot. If you accidentally expose a token, immediately go to the [Discord Developer Portal](https://discord.com/developers/applications), navigate to your application's **Bot** tab, and click **Reset Token** to invalidate the old one. Consider using a `.env` file and a library such as `python-dotenv` to keep the token out of your source code.
+  **Never commit a real bot token to version control.** Anyone who obtains your token can take full control of your bot. If you accidentally expose a token, immediately go to the [Discord Developer Portal](https://discord.com/developers/applications), navigate to your application's **Bot** tab, and click **Reset Token** to invalidate the old one. Make sure to add `main/main.py` (or at minimum your token value) to `.gitignore` before pushing the repository.
 </Warning>
 
 ## Changing the Bot Prefix

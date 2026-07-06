@@ -45,7 +45,6 @@ Before the bot can connect to Discord it must be registered as an application in
     1. In the left-hand sidebar, navigate to **OAuth2 → URL Generator**.
     2. Under **Scopes**, select:
        - `bot`
-       - `applications.commands`
     3. Under **Bot Permissions**, select the following permissions (all of which the bot uses at runtime):
 
        | Permission | Why it's needed |
@@ -57,7 +56,7 @@ Before the bot can connect to Discord it must be registered as an application in
        | Attach Files | Allows file attachments within tickets |
        | Read Message History | Accesses previous messages in ticket channels |
        | Manage Messages | Deletes the original command message after `tb!ticket` |
-       | Add Reactions | Reserved for future reaction-based interactions |
+       | Add Reactions | Granted to users and staff within ticket channels |
        | Mention Everyone | Pings the staff role when a user calls for help |
 
     4. Scroll to the bottom of the page and copy the generated **invite URL**.

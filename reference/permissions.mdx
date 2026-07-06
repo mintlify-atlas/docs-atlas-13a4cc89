@@ -1,5 +1,5 @@
 ---
-title: "Required Discord Permissions for Ticket Bot"
+title: "Required Discord Permissions for the Ticket Bot Setup"
 sidebarTitle: "Permissions"
 description: "All Discord permissions the Ticket Bot requires at the server and channel level, including per-ticket permission overrides applied to every new channel."
 ---
@@ -78,7 +78,20 @@ The `tb!ticket` text command is protected by the `@commands.has_permissions(admi
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def ticket(ctx):
-    ...
+    await ctx.message.delete()
+    embed = discord.Embed(
+        title='Tickets',
+        description='Welcome to tickets system.',
+        color=embed_color
+    )
+    embed.set_image(url='https://i.imgur.com/FoI5ITb.png')
+    await ctx.send(
+        embed=embed,
+        components=[
+            Button(custom_id='Ticket', label="Create a ticket",
+                   style=ButtonStyle.green, emoji='🔧')
+        ]
+    )
 ```
 
 Only server administrators should need this command; it is intended to be run once (or rarely) to post the ticket panel in a designated channel.

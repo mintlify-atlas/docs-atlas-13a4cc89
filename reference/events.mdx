@@ -1,5 +1,5 @@
 ---
-title: "Discord Ticket Bot Event Handlers Reference"
+title: "Discord Ticket Bot: Event Handlers Reference Guide"
 sidebarTitle: "Events"
 description: "Reference for all three discord.py event handlers defined in main.py: on_ready, on_button_click, and on_select_option and what each one does."
 ---
@@ -42,7 +42,7 @@ async def on_ready():
 
 | `custom_id` | Action |
 |---|---|
-| `Ticket` | Sends an ephemeral select menu with three ticket category options (Question, Help, Report) |
+| `Ticket` | Sends a select menu with three ticket category options (Question, Help, Report) |
 | `call_staff` | Pings the staff role with a notification embed; auto-deletes after 20 seconds |
 | `close_ticket` | Sends a close-confirmation embed with Yes and No buttons in the ticket channel |
 | `close_yes` | Deletes the ticket channel and posts a log embed to `id_channel_ticket_logs` |
@@ -138,7 +138,7 @@ async def on_button_click(interaction):
    - **`@everyone`** — `send_messages=False`, `read_messages=False` (hides the channel from non-participants).
    - **Ticket creator** — `send_messages`, `read_messages`, `add_reactions`, `embed_links`, `attach_files`, `read_message_history`, `external_emojis` all set to `True`.
    - **Staff role** — same as the ticket creator, plus `manage_messages=True`.
-4. Sends the user an ephemeral confirmation message pointing to the new channel (auto-deletes after 3 seconds).
+4. Sends the user a confirmation message pointing to the new channel (auto-deletes after 3 seconds).
 5. Posts the welcome embed with a **🔐 Close ticket** button and a **🔔 Call staff** button inside the new channel, mentioning the ticket creator.
 
 ```python
@@ -154,7 +154,16 @@ async def on_select_option(interaction):
             channel = await guild.create_text_channel(
                 name=f'❔┃{interaction.author.name}-ticket', category=category
             )
-            # ... set_permissions for @everyone, author, rol_staff ...
+            await channel.set_permissions(interaction.guild.get_role(interaction.guild.id),
+                            send_messages=False, read_messages=False)
+            await channel.set_permissions(interaction.author,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True)
+            await channel.set_permissions(rol_staff,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True, manage_messages=True)
             await interaction.send(
                 f'> The {channel.mention} channel was created to solve your questions.',
                 delete_after=3
@@ -177,12 +186,72 @@ async def on_select_option(interaction):
             )
 
         elif interaction.values[0] == 'help':
-            # Same pattern — channel name: 🔧┃{username}-ticket
-            # Embed title: Help - ¡Hi {username}!
-            ...
+            channel = await guild.create_text_channel(
+                name=f'🔧┃{interaction.author.name}-ticket', category=category
+            )
+            await channel.set_permissions(interaction.guild.get_role(interaction.guild.id),
+                            send_messages=False, read_messages=False)
+            await channel.set_permissions(interaction.author,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True)
+            await channel.set_permissions(rol_staff,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True, manage_messages=True)
+            await interaction.send(
+                f'> The {channel.mention} channel was created to help you.',
+                delete_after=3
+            )
+            embed_question = discord.Embed(
+                title=f'Help - ¡Hi {interaction.author.name}!',
+                description='In this ticket we can help you with whatever you need.\n\n'
+                            'If you cant get someone to help you, press the button `🔔 Call staff`.',
+                color=embed_color
+            )
+            embed_question.set_thumbnail(url=interaction.author.avatar_url)
+            await channel.send(
+                interaction.author.mention, embed=embed_question,
+                components=[[
+                    Button(custom_id='close_ticket', label="Close ticket",
+                           style=ButtonStyle.red,  emoji='🔐'),
+                    Button(custom_id='call_staff',   label="Call staff",
+                           style=ButtonStyle.blue, emoji='🔔')
+                ]]
+            )
 
         elif interaction.values[0] == 'report':
-            # Same pattern — channel name: 🚫┃{username}-ticket
-            # Embed title: Report - ¡Hi {username}!
-            ...
+            channel = await guild.create_text_channel(
+                name=f'🚫┃{interaction.author.name}-ticket', category=category
+            )
+            await channel.set_permissions(interaction.guild.get_role(interaction.guild.id),
+                            send_messages=False, read_messages=False)
+            await channel.set_permissions(interaction.author,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True)
+            await channel.set_permissions(rol_staff,
+                            send_messages=True, read_messages=True, add_reactions=True,
+                            embed_links=True, attach_files=True, read_message_history=True,
+                            external_emojis=True, manage_messages=True)
+            await interaction.send(
+                f'> The {channel.mention} channel was created to report to the user.',
+                delete_after=3
+            )
+            embed_question = discord.Embed(
+                title=f'Report - ¡Hi {interaction.author.name}!',
+                description='In this ticket we can help you with your report.\n\n'
+                            'If you cant get someone to help you, press the button `🔔 Call staff`.',
+                color=embed_color
+            )
+            embed_question.set_thumbnail(url=interaction.author.avatar_url)
+            await channel.send(
+                interaction.author.mention, embed=embed_question,
+                components=[[
+                    Button(custom_id='close_ticket', label="Close ticket",
+                           style=ButtonStyle.red,  emoji='🔐'),
+                    Button(custom_id='call_staff',   label="Call staff",
+                           style=ButtonStyle.blue, emoji='🔔')
+                ]]
+            )
 ```

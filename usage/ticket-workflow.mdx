@@ -1,5 +1,5 @@
 ---
-title: "End-to-End Ticket Workflow for Server Members"
+title: "Discord Ticket Bot Workflow: From Panel to Closed Ticket"
 sidebarTitle: "Ticket Workflow"
 description: "Trace the full lifecycle of a support ticket from panel creation through category selection, private channel setup, and final closure with logging."
 ---
@@ -10,13 +10,13 @@ Every support ticket passes through a predictable sequence of steps driven by Di
   <Step title="Open the ticket panel">
     An administrator runs `tb!ticket` in the desired support channel. The bot deletes the command message and posts an embed titled **Tickets** with the description *"Welcome to tickets system."*, a banner image, and a single green **🔧 Create a ticket** button. This panel is the only entry point for the ticket system.
 
-    ```
+    ```text
     tb!ticket
     ```
   </Step>
 
   <Step title="Create a ticket">
-    A server member clicks the green **🔧 Create a ticket** button on the panel embed. The `Ticket` button interaction fires and the bot responds with a select menu directly below the button. No channel is created at this point — the member must first choose a category.
+    A server member clicks the green **🔧 Create a ticket** button on the panel embed. The `Ticket` button interaction fires and the bot responds with a select menu asking the member to choose a category. No channel is created at this point — the member must first choose a category.
   </Step>
 
   <Step title="Choose a category">

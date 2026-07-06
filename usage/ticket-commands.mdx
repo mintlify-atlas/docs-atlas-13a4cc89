@@ -1,7 +1,7 @@
 ---
-title: "Ticket Bot Commands and Button Interactions"
+title: "Discord Ticket Bot Commands: Text, Buttons, and Select Menus"
 sidebarTitle: "Commands"
-description: "Full reference for the tb!ticket command and every button and select menu interaction the Discord Ticket Bot handles."
+description: "Complete reference for the tb!ticket administrator command and every button and select-menu interaction the Discord Ticket Bot exposes."
 ---
 
 The Discord Ticket Bot exposes a single text command that administrators use to post the support panel, plus a set of button and select-menu interactions that drive the entire ticket lifecycle. Understanding each interaction's `custom_id`, trigger, and effect makes it straightforward to trace exactly what the bot will do at every step.
@@ -156,7 +156,7 @@ The select menu (`custom_id="menu"`) is shown in response to the `Ticket` button
 | **Help** | `help` | 🔧 | If you need help from us. | `🔧┃{username}-ticket` |
 | **Report** | `report` | 🚫 | To report a misbehaving user. | `🚫┃{username}-ticket` |
 
-After the channel is created the bot sends an ephemeral-style response (auto-deleted after 3 seconds) to the member confirming the channel was created, then posts a welcome embed inside the new channel. Every ticket channel gets the same two action buttons: **🔐 Close ticket** (red) and **🔔 Call staff** (blue).
+After the channel is created the bot sends a confirmation message (auto-deleted after 3 seconds) to the member confirming the channel was created, then posts a welcome embed inside the new channel. Every ticket channel gets the same two action buttons: **🔐 Close ticket** (red) and **🔔 Call staff** (blue).
 
 <Tip>
   The channel name embeds the selecting member's Discord username, making it easy to identify who owns a ticket at a glance from the channel list.
